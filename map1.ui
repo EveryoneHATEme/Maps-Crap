@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>774</width>
-    <height>627</height>
+    <width>881</width>
+    <height>682</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -70,7 +70,7 @@
       <property name="minimumSize">
        <size>
         <width>0</width>
-        <height>300</height>
+        <height>500</height>
        </size>
       </property>
       <property name="text">
@@ -91,11 +91,7 @@
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>
-       <widget class="QTextEdit" name="Serch_2">
-        <property name="readOnly">
-         <bool>true</bool>
-        </property>
-       </widget>
+       <widget class="QTextEdit" name="Serch_2"/>
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -166,7 +162,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>774</width>
+     <width>881</width>
      <height>19</height>
     </rect>
    </property>
