@@ -4,26 +4,7 @@ from PyQt5 import QtGui
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 import sys
-
-
-class RequestHandler:
-    def __init__(self):
-        self.latitude = None
-        self.longitude = None
-        self.delta = 0.01
-        self.points = list()
-        self.mode = 'map'
-
-    def increase_map(self):
-        self.delta = min(2, self.delta + 0.01)
-        self.update()
-
-    def decrease_map(self):
-        self.delta = max(0.01, self.delta - 0.01)
-        self.update()
-
-    def update(self):
-        pass
+from APIHandler import RequestHandler
 
 
 class MapsApp(QMainWindow):
@@ -36,6 +17,14 @@ class MapsApp(QMainWindow):
             self.actions_handler.increase_map()
         elif event.key() == Qt.Key_PageUp:
             self.actions_handler.decrease_map()
+        elif event.key() == Qt.Key_Up:
+            self.actions_handler.move_up()
+        elif event.key() == Qt.Key_Down:
+            self.actions_handler.move_down()
+        elif event.key() == Qt.Key_Left:
+            self.actions_handler.move_left()
+        elif event.key() == Qt.Key_Right:
+            self.actions_handler.move_right()
 
 
 def excepthook(a, b, c):
