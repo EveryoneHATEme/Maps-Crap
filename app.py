@@ -1,10 +1,9 @@
 import sys
-from pprint import pprint
 from decimal import Decimal
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QPicture, QPixmap
+from PyQt5.QtGui import QPixmap
 
 from ui import ui_main
 from api import api_handler
@@ -65,28 +64,28 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
                 self.update_map()
             elif key == Qt.Key_Left:
                 # move left {left down}
-                k = abs(self.bbox[1][0] - self.bbox[0][0]) / 10
+                k = abs(self.bbox[1][0] - self.bbox[0][0])
                 self.bbox = ((self.bbox[0][0] - k, self.bbox[0][1]), (self.bbox[1][0] - k, self.bbox[1][1]))
                 if self.bbox[0][0] < -180:
                     self.bbox = ((self.bbox[0][0] + 360, self.bbox[0][1]), (self.bbox[1][0] + 360, self.bbox[1][1]))
                 self.update_map()
             elif key == Qt.Key_Right:
                 # move right {left up}
-                k = abs(self.bbox[1][0] - self.bbox[0][0]) / 10
+                k = abs(self.bbox[1][0] - self.bbox[0][0])
                 self.bbox = ((self.bbox[0][0] + k, self.bbox[0][1]), (self.bbox[1][0] + k, self.bbox[1][1]))
                 if self.bbox[1][0] > 180:
                     self.bbox = ((self.bbox[0][0] - 360, self.bbox[0][1]), (self.bbox[1][0] - 360, self.bbox[1][1]))
                 self.update_map()
             elif key == Qt.Key_Up:
                 # move up {right up)
-                k = abs(self.bbox[1][1] - self.bbox[0][1]) / 10
+                k = abs(self.bbox[1][1] - self.bbox[0][1])
                 self.bbox = ((self.bbox[0][0], self.bbox[0][1] + k), (self.bbox[1][0], self.bbox[1][1] + k))
                 if self.bbox[1][1] > 90:
                     self.bbox = ((self.bbox[0][0], 90 - (self.bbox[1][1] - self.bbox[0][1])), (self.bbox[1][0], 90.0))
                 self.update_map()
             elif key == Qt.Key_Down:
                 # move down {right down)
-                k = abs(self.bbox[1][1] - self.bbox[0][1]) / 10
+                k = abs(self.bbox[1][1] - self.bbox[0][1])
                 self.bbox = ((self.bbox[0][0], self.bbox[0][1] - k), (self.bbox[1][0], self.bbox[1][1] - k))
                 if self.bbox[0][1] < -90:
                     self.bbox = ((self.bbox[0][0], 90), (self.bbox[1][0], -90 + (self.bbox[1][1] - self.bbox[0][1])))
@@ -100,14 +99,7 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
                   f'{lat_per_pix * click_y + Decimal(self.bbox[0][1])},pm2rdm'
         print(f'левый нижний: {self.bbox[0]}\nправый верхний: {self.bbox[1]}\n'
               f'клик: {lon_per_pix * click_x + Decimal(self.bbox[0][0])}\nlon_per_pix: {lon_per_pix}')
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.update_map()
-            # find object
-        elif event.button() == Qt.RightButton:
-            self.update_map()
-            # find closest organization (<= 50 meters)
+        self.update_map()
 
     def update_map(self):
         img = self.api_handler.get_image(

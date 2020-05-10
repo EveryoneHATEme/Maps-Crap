@@ -32,7 +32,6 @@ class ApiHandler:
             params["pl"] = pl
         if lang:
             params["lang"] = lang
-        response = get(MAP_API_SERVER, params=params)
         return get(MAP_API_SERVER, params=params).content
 
     @staticmethod
