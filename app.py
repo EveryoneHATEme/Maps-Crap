@@ -1,5 +1,6 @@
 import sys
 from decimal import Decimal
+from copy import deepcopy
 
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import Qt
@@ -30,6 +31,7 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
         self.pt = ""
         self.pl = ""
         self.lang = "ru_RU"
+        self.found = False
 
     def setup_connections(self):
         self.pushButton_find.clicked.connect(self.find_object)
@@ -43,52 +45,56 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
 
     def keyReleaseEvent(self, event):
         key = event.key()
-        if self.ll:
+        if self.found:
             if key == Qt.Key_PageUp:
                 # zoom in
                 delta_x = abs(self.bbox[1][0] - self.bbox[0][0]) / 5
                 delta_y = abs(self.bbox[1][1] - self.bbox[0][1]) / 5
+                if delta_x <= 0.0001 or delta_y <= 0.0001:
+                    return
 
                 self.bbox = ((self.bbox[0][0] + delta_x, self.bbox[0][1] + delta_y),
                              (self.bbox[1][0] - delta_x, self.bbox[1][1] - delta_y))
-
                 self.update_map()
             elif key == Qt.Key_PageDown:
                 # zoom out
                 delta_x = abs(self.bbox[1][0] - self.bbox[0][0]) / 5
                 delta_y = abs(self.bbox[1][1] - self.bbox[0][1]) / 5
 
-                self.bbox = ((self.bbox[0][0] - delta_x, self.bbox[0][1] - delta_y),
-                             (self.bbox[1][0] + delta_x, self.bbox[1][1] + delta_y))
-
+                self.bbox = ((max(-179, self.bbox[0][0] - delta_x), max(-89, self.bbox[0][1] - delta_y)),
+                             (min(179, self.bbox[1][0] + delta_x), min(89, self.bbox[1][1] + delta_y)))
                 self.update_map()
             elif key == Qt.Key_Left:
                 # move left {left down}
                 k = abs(self.bbox[1][0] - self.bbox[0][0])
+                prev_bbox = deepcopy(self.bbox)
                 self.bbox = ((self.bbox[0][0] - k, self.bbox[0][1]), (self.bbox[1][0] - k, self.bbox[1][1]))
                 if self.bbox[0][0] < -180:
-                    self.bbox = ((self.bbox[0][0] + 360, self.bbox[0][1]), (self.bbox[1][0] + 360, self.bbox[1][1]))
+                    self.bbox = deepcopy(prev_bbox)
                 self.update_map()
             elif key == Qt.Key_Right:
                 # move right {left up}
                 k = abs(self.bbox[1][0] - self.bbox[0][0])
+                prev_bbox = deepcopy(self.bbox)
                 self.bbox = ((self.bbox[0][0] + k, self.bbox[0][1]), (self.bbox[1][0] + k, self.bbox[1][1]))
                 if self.bbox[1][0] > 180:
-                    self.bbox = ((self.bbox[0][0] - 360, self.bbox[0][1]), (self.bbox[1][0] - 360, self.bbox[1][1]))
+                    self.bbox = deepcopy(prev_bbox)
                 self.update_map()
             elif key == Qt.Key_Up:
                 # move up {right up)
                 k = abs(self.bbox[1][1] - self.bbox[0][1])
+                prev_bbox = deepcopy(self.bbox)
                 self.bbox = ((self.bbox[0][0], self.bbox[0][1] + k), (self.bbox[1][0], self.bbox[1][1] + k))
                 if self.bbox[1][1] > 90:
-                    self.bbox = ((self.bbox[0][0], 90 - (self.bbox[1][1] - self.bbox[0][1])), (self.bbox[1][0], 90.0))
+                    self.bbox = deepcopy(prev_bbox)
                 self.update_map()
             elif key == Qt.Key_Down:
                 # move down {right down)
                 k = abs(self.bbox[1][1] - self.bbox[0][1])
+                prev_bbox = deepcopy(self.bbox)
                 self.bbox = ((self.bbox[0][0], self.bbox[0][1] - k), (self.bbox[1][0], self.bbox[1][1] - k))
-                if self.bbox[0][1] < -90:
-                    self.bbox = ((self.bbox[0][0], 90), (self.bbox[1][0], -90 + (self.bbox[1][1] - self.bbox[0][1])))
+                if self.bbox[0][1] <= -90:
+                    self.bbox = deepcopy(prev_bbox)
                 self.update_map()
 
     def map_click(self):
@@ -99,7 +105,11 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
                   f'{lat_per_pix * click_y + Decimal(self.bbox[0][1])},pm2rdm'
         print(f'левый нижний: {self.bbox[0]}\nправый верхний: {self.bbox[1]}\n'
               f'клик: {lon_per_pix * click_x + Decimal(self.bbox[0][0])}\nlon_per_pix: {lon_per_pix}')
+        response = self.api_handler.geocoder_api_json(geocode=f'{lon_per_pix * click_x + Decimal(self.bbox[0][0])},'
+                                                              f'{lat_per_pix * click_y + Decimal(self.bbox[0][1])}')
+        self.address, self.postal_code = utils.address_from_json(response)
         self.update_map()
+        self.display_address()
 
     def update_map(self):
         img = self.api_handler.get_image(
@@ -122,6 +132,8 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
         self.ll = utils.lonlat_from_json(response)[0]
         self.bbox = utils.get_bbox_from_geocoder(response)
         self.address, self.postal_code = utils.address_from_json(response)
+        self.pt = f"{self.ll},pm2rdm"
+        self.found = True
         self.update_map()
         self.display_address()
 
@@ -130,6 +142,11 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
         self.lineEdit_address.clear()
         self.labelMap.clear()
         self.ll = None
+        self.bbox = ()
+        self.address = ""
+        self.postal_code = ""
+        self.pt = ""
+        self.found = False
 
     def display_address(self):
         if self.radioButton_with_index.isChecked():
