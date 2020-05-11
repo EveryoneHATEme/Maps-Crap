@@ -41,7 +41,8 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
         self.radioButton_map.clicked.connect(self.change_view)
         self.radioButton_sat.clicked.connect(self.change_view)
         self.radioButton_hybrid.clicked.connect(self.change_view)
-        self.labelMap.clicked.connect(self.map_click)
+        self.labelMap.left_clicked.connect(self.map_left_click)
+        self.labelMap.right_clicked.connect(self.map_right_click)
 
     def keyReleaseEvent(self, event):
         key = event.key()
@@ -97,19 +98,34 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
                     self.bbox = deepcopy(prev_bbox)
                 self.update_map()
 
-    def map_click(self):
+    def map_left_click(self):
         click_x, click_y = self.labelMap.get_click_pos()
         lon_per_pix = (Decimal(self.bbox[1][0]) - Decimal(self.bbox[0][0])) / self.labelMap.width()
         lat_per_pix = (Decimal(self.bbox[1][1]) - Decimal(self.bbox[0][1])) / self.labelMap.height()
         self.pt = f'{lon_per_pix * click_x + Decimal(self.bbox[0][0])},' \
                   f'{lat_per_pix * click_y + Decimal(self.bbox[0][1])},pm2rdm'
-        print(f'левый нижний: {self.bbox[0]}\nправый верхний: {self.bbox[1]}\n'
-              f'клик: {lon_per_pix * click_x + Decimal(self.bbox[0][0])}\nlon_per_pix: {lon_per_pix}')
-        response = self.api_handler.geocoder_api_json(geocode=f'{lon_per_pix * click_x + Decimal(self.bbox[0][0])},'
-                                                              f'{lat_per_pix * click_y + Decimal(self.bbox[0][1])}')
-        self.address, self.postal_code = utils.address_from_json(response)
-        self.update_map()
-        self.display_address()
+        try:
+            response = self.api_handler.geocoder_api_json(geocode=f'{lon_per_pix * click_x + Decimal(self.bbox[0][0])},'
+                                                                  f'{lat_per_pix * click_y + Decimal(self.bbox[0][1])}')
+            self.address, self.postal_code = utils.address_from_json(response)
+            self.update_map()
+            self.display_address()
+        except IndexError:
+            return
+
+    def map_right_click(self):
+        click_x, click_y = self.labelMap.get_click_pos()
+        lon_per_pix = (Decimal(self.bbox[1][0]) - Decimal(self.bbox[0][0])) / self.labelMap.width()
+        lat_per_pix = (Decimal(self.bbox[1][1]) - Decimal(self.bbox[0][1])) / self.labelMap.height()
+        lon, lat = lon_per_pix * click_x + Decimal(self.bbox[0][0]), lat_per_pix * click_y + Decimal(self.bbox[0][1])
+        response = self.api_handler.search_api_json(text='организация',
+                                                    spn="0.1,0.1",
+                                                    ll=f'{lon},{lat}',
+                                                    _type="biz")
+        closest_org = utils.get_closest_object_data_from_search_api(response)
+        if utils.get_distance((float(lon), float(lat)), closest_org["pos"]) <= 0.05:
+            self.find_object(ll=f"{closest_org['pos'][0]},{closest_org['pos'][1]}")
+            self.lineEdit_request.setText(closest_org["name"])
 
     def update_map(self):
         img = self.api_handler.get_image(
@@ -127,9 +143,17 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
         pixmap.loadFromData(img)
         self.labelMap.setPixmap(pixmap)
 
-    def find_object(self):
-        response = self.api_handler.geocoder_api_json(geocode=self.lineEdit_request.text())
-        self.ll = utils.lonlat_from_json(response)[0]
+    def find_object(self, ll=None):
+        if not ll:
+            if not self.lineEdit_request.text():
+                return
+            response = self.api_handler.geocoder_api_json(geocode=self.lineEdit_request.text())
+            if not response["response"]["GeoObjectCollection"]["featureMember"]:
+                return
+            self.ll = utils.lonlat_from_json(response)[0]
+        else:
+            response = self.api_handler.geocoder_api_json(geocode=ll)
+            self.ll = ll
         self.bbox = utils.get_bbox_from_geocoder(response)
         self.address, self.postal_code = utils.address_from_json(response)
         self.pt = f"{self.ll},pm2rdm"
@@ -151,7 +175,7 @@ class App(QMainWindow, ui_main.Ui_MainWindow):
     def display_address(self):
         if self.radioButton_with_index.isChecked():
             if self.postal_code:
-                self.lineEdit_address.setText(self.address + self.postal_code)
+                self.lineEdit_address.setText(f"{self.address}, {self.postal_code}")
             else:
                 self.lineEdit_address.setText(self.address + ", postal code unknown")
         else:

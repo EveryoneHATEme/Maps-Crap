@@ -1,5 +1,4 @@
 import math
-from pprint import pprint
 
 
 def get_bbox_from_geocoder(response):
@@ -63,13 +62,19 @@ def get_closest_object_data_from_search_api(response: dict):
     return {'name': org_name, 'address': org_address, 'pos': point}
 
 
-def lonlat_distance(a, b):
-    degree_to_meters_factor = 111 * 1000
-    a_lon, a_lat = a
-    b_lon, b_lat = b
-    radians_lattitude = math.radians((a_lat + b_lat) / 2.)
-    lat_lon_factor = math.cos(radians_lattitude)
-    dx = abs(a_lon - b_lon) * degree_to_meters_factor * lat_lon_factor
-    dy = abs(a_lat - b_lat) * degree_to_meters_factor
-    distance = math.sqrt(dx * dx + dy * dy)
+def get_distance(p1, p2):
+    radius = 6373.0
+
+    lon1 = math.radians(p1[0])
+    lat1 = math.radians(p1[1])
+    lon2 = math.radians(p2[0])
+    lat2 = math.radians(p2[1])
+
+    d_lon = lon2 - lon1
+    d_lat = lat2 - lat1
+
+    a = math.sin(d_lat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(d_lon / 2) ** 2
+    c = 2 * math.atan2(a ** 0.5, (1 - a) ** 0.5)
+
+    distance = radius * c
     return distance

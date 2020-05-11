@@ -63,18 +63,25 @@ class ApiHandler:
         return get(GEOCODER_API_SERVER, params=params).json()
 
     @staticmethod
-    def search_api_json(text="", type="", rspn="", ll="", spn="",
+    def search_api_json(text="", _type="", rspn="", ll="", spn="",
                         bbox="", results="", skip="", lang="ru_RU"):
         params = {
             "apikey": SEARCH_API_KEY,
             "text": text,
-            "lang": lang,
-            "type": type,
-            "rspn": rspn,
-            "ll": ll,
-            "spn": spn,
-            "bbox": bbox,
-            "results": results,
-            "skip": skip,
+            "lang": lang
         }
+        if _type:
+            params["type"] = _type,
+        if rspn:
+            params["rspn"] = rspn,
+        if ll:
+            params["ll"] = ll,
+        if spn:
+            params["spn"] = spn,
+        if bbox:
+            params["bbox"] = bbox,
+        if results:
+            params["results"] = results,
+        if skip:
+            params["skip"] = skip
         return get(SEARCH_API_SERVER, params=params).json()
